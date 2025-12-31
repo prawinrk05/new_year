@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You ❤️</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Patrick+Hand&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-pink: #fff0f3;
+            --accent-red: #ff4d6d;
+            --text-dark: #590d22;
+            --card-white: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Patrick Hand', cursive; 
+            background-color: var(--bg-pink);
+            background-image: 
+                radial-gradient(#ffccd5 1px, transparent 1px), 
+                radial-gradient(#ffccd5 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            height: 100vh;
+            overflow: hidden; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-dark);
+        }
+
+        /* --- Floating Background Elements --- */
+        .blob {
+            position: absolute;
+            filter: blur(40px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 300px; height: 300px; background: #ffb3c1; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 250px; height: 250px; background: #ff8fa3; animation-delay: 2s; }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 40px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* --- Main Container --- */
+        #app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            position: relative;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* --- Pages Logic --- */
+        .page {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Specific fix for Page 3 to allow scrolling for 2 images */
+        #page3 {
+            max-height: 100vh;
+            overflow-y: auto; /* Allows scrolling */
+            justify-content: flex-start;
+            padding-top: 80px; /* Space for title */
+            padding-bottom: 100px; /* Space for music player */
+            /* Hide scrollbar */
+            -ms-overflow-style: none;  
+            scrollbar-width: none;  
+        }
+        #page3::-webkit-scrollbar { display: none; }
+
+        .page.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .page.exit {
+            opacity: 0;
+            transform: translate(-50%, -60%) scale(0.9);
+        }
+
+        /* --- Typography --- */
+        h1 {
+            font-family: 'Sacramento', cursive;
+            font-size: 3.5rem;
+            color: var(--accent-red);
+            line-height: 1;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px rgba(255, 180, 190, 0.5);
+        }
+
+        p {
+            font-size: 1.4rem;
+            line-height: 1.5;
+            color: #800f2f;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            border-radius: 50px;
+            font-family: 'Patrick Hand', cursive;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4);
+            transition: transform 0.2s;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0; /* Prevents button from squishing */
+        }
+        
+        .btn:active { transform: scale(0.95); }
+        
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn:active::after { opacity: 1; }
+
+        /* --- Polaroid Frames --- */
+        .polaroid-frame {
+            background: white;
+            padding: 15px 15px 50px 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 320px;
+            transition: transform 0.4s;
+            cursor: zoom-in;
+            position: relative;
+            margin-bottom: 20px; /* Space between the two photos */
+        }
+        
+        /* Rotate the first one left, second one right */
+        .polaroid-frame:nth-of-type(1) { transform: rotate(-3deg); }
+        .polaroid-frame:nth-of-type(2) { transform: rotate(2deg); }
+
+        .polaroid-frame:hover {
+            transform: rotate(0deg) scale(1.02);
+        }
+
+        .polaroid-frame img {
+            width: 100%;
+            height: auto; 
+            border-radius: 2px;
+            display: block;
+        }
+
+        .polaroid-caption {
+            font-family: 'Indie Flower', cursive;
+            font-size: 1.5rem;
+            color: #555;
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            left: 0;
+        }
+
+        /* --- Cute Music Player Bar --- */
+        .music-player {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 350px;
+            z-index: 100;
+        }
+        
+        .play-icon {
+            width: 35px;
+            height: 35px;
+            background: var(--accent-red);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .song-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .song-title { font-size: 1rem; font-weight: bold; }
+        .song-artist { font-size: 0.8rem; color: #888; }
+
+        /* --- Fullscreen Zoom --- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .overlay img {
+            max-width: 95%;
+            max-height: 85vh;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            transform: scale(0.8);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .overlay.visible img {
+            transform: scale(1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div id="app-container">
+        
+        <div class="page active" id="page1">
+            <h1>Hey Chellameyy...</h1>
+            <p>I have something to tell you(Cringe ahead).</p>
+            <div style="font-size: 3rem; margin: 20px 0;">💌</div>
+            <button class="btn" onclick="nextPage(1)">Inga click panu</button>
+        </div>
+
+        <div class="page" id="page2">
+            <p id="typewriter-text" style="min-height: 120px; text-align: left; width: 100%; padding: 0 10px;"></p>
+            <button class="btn" onclick="nextPage(2)" style="display:none;" id="btn-page2">Continue &rarr;</button>
+        </div>
+
+        <div class="page" id="page3">
+            <h1>Happy New Year!</h1>
+            
+            <div class="polaroid-frame" onclick="toggleZoom('main-photo')">
+                <img id="main-photo" src="1.jpeg" alt="Us">
+                <div class="polaroid-caption">காதல் கடிதம்</div>
+            </div>
+
+            <div class="polaroid-frame" onclick="toggleZoom('second-photo')">
+                <img id="second-photo" src="2.jpeg" alt="Us 2">
+                <div class="polaroid-caption">Forever</div>
+            </div>
+
+            <p style="margin-top: 15px;">Love you Meri Jaan❤️ .</p>
+            <button class="btn" onclick="celebrate()">Click for Magic ✨</button>
+            <div style="height: 50px;"></div> </div>
+
+    </div>
+
+    <div class="music-player">
+        <div class="play-icon">▶</div>
+        <div class="song-info">
+            <span class="song-title">Thinking of You</span>
+            <span class="song-artist">Playing now...</span>
+        </div>
+        <div style="margin-left: auto; color: #ff4d6d;">♥</div>
+    </div>
+
+    <div class="overlay" id="zoom-overlay" onclick="toggleZoom()">
+        <img id="zoomed-img" src="">
+    </div>
+
+    <script>
+        // --- Configuration: Edit the text below! ---
+        const loveLetter = "I know it's corny, but I just wanted to say... Thank you for sticking with me. Thank you for the laughs, the love, and even the silly arguments...";
+
+        // --- Logic ---
+        
+        function nextPage(currentPageNum) {
+            const current = document.getElementById(`page${currentPageNum}`);
+            const next = document.getElementById(`page${currentPageNum + 1}`);
+
+            // Animate out
+            current.classList.remove('active');
+            current.classList.add('exit');
+
+            // Wait for animation, then show next
+            setTimeout(() => {
+                next.classList.add('active');
+                
+                // If moving to Page 2, start typing effect
+                if(currentPageNum === 1) {
+                    typeWriter(loveLetter, 'typewriter-text', () => {
+                        // Show button after typing is done
+                        document.getElementById('btn-page2').style.display = 'inline-block';
+                        // Simple bounce animation for button appearing
+                        document.getElementById('btn-page2').animate([
+                            { transform: 'scale(0)' },
+                            { transform: 'scale(1)' }
+                        ], { duration: 400, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
+                    });
+                }
+
+                // If moving to Page 3, trigger initial confetti
+                if(currentPageNum === 2) {
+                    fireConfetti();
+                }
+            }, 600);
+        }
+
+        // Typewriter Effect Function
+        function typeWriter(text, elementId, callback) {
+            const element = document.getElementById(elementId);
+            let i = 0;
+            element.innerHTML = ""; // Clear existing
+            
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, 40); // Typing speed
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
+
+        // Confetti Blast
+        function fireConfetti() {
+            const count = 200;
+            const defaults = {
+                origin: { y: 0.7 },
+                colors: ['#ff4d6d', '#ffccd5', '#ffffff'] // Custom pink colors
+            };
+
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio)
+                }));
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+
+        function celebrate() {
+            fireConfetti();
+            // Add a heart vibration effect to the button
+            const btn = document.querySelector('#page3 .btn');
+            btn.style.transform = "scale(1.1)";
+            setTimeout(() => btn.style.transform = "scale(1)", 200);
+        }
+
+        // Updated Image Zoom Logic to handle multiple images
+        function toggleZoom(imgId) {
+            const overlay = document.getElementById('zoom-overlay');
+            const zoomedImg = document.getElementById('zoomed-img');
+
+            if (!overlay.classList.contains('visible') && imgId) {
+                // Open: Find the specific image clicked using the ID
+                const mainImg = document.getElementById(imgId);
+                if(mainImg) {
+                    zoomedImg.src = mainImg.src;
+                    overlay.classList.add('visible');
+                }
+            } else {
+                // Close
+                overlay.classList.remove('visible');
+            }
+        }
+    </script>
+</body>
+</html>
